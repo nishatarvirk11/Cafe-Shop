@@ -1,0 +1,157 @@
+import { useCart } from '@/components/CartContext';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { router } from 'expo-router';
+import React from 'react';
+import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+export default function CartScreen() {
+  const { items, subtotal, discount, total, isFirstOrderEligible, removeItem, clearCart, checkout } = useCart();
+
+  const onCheckout = () => {
+    if (items.length === 0) {
+      Alert.alert('Cart is empty');
+      return;
+    }
+    router.push('/checkout');
+  };
+
+  return (
+    <FlatList
+      data={items}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={
+        <ThemedView style={styles.header}>
+          <IconSymbol size={40} name="cart.fill" color="#2E7D32" />
+          <ThemedText type="title">Cart</ThemedText>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={styles.clearSmall} onPress={clearCart} disabled={items.length === 0}>
+            <ThemedText type="defaultSemiBold">Clear</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+      }
+      ListEmptyComponent={<ThemedText>Your cart is empty.</ThemedText>}
+      renderItem={({ item }) => (
+        <View style={styles.row}>
+          <ThemedText type="defaultSemiBold">{item.name} x{item.quantity}</ThemedText>
+          <View style={styles.rowRight}>
+            <ThemedText>${(item.price * item.quantity).toFixed(2)}</ThemedText>
+            <TouchableOpacity style={styles.removeButton} onPress={() => removeItem(item.id)}>
+              <ThemedText type="defaultSemiBold">Remove</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      ListFooterComponent={
+        <ThemedView style={styles.summary}>
+          <Row label="Subtotal" value={`$${subtotal.toFixed(2)}`} />
+          <Row label={isFirstOrderEligible ? 'First order discount (10%)' : 'Discount'} value={`-$${discount.toFixed(2)}`} />
+          <Row label="Total" value={`$${total.toFixed(2)}`} bold />
+          <View style={styles.summaryButtons}>
+            <TouchableOpacity style={styles.clearButton} onPress={clearCart}>
+              <ThemedText type="defaultSemiBold">Clear</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.checkoutButton} onPress={onCheckout} disabled={items.length === 0}>
+              <ThemedText type="defaultSemiBold">Checkout</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ThemedView>
+      }
+      contentContainerStyle={styles.listContent}
+    />
+  );
+}
+
+function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <View style={styles.rowBetween}>
+      <ThemedText type={bold ? 'subtitle' : 'default'}>{label}</ThemedText>
+      <ThemedText type={bold ? 'subtitle' : 'default'}>{value}</ThemedText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    paddingTop: 48,
+    paddingBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  listContent: {
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingTop: 32,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  rowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  removeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#E57373',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#e6e6e6',
+  },
+  summary: {
+    paddingVertical: 16,
+    gap: 8,
+  },
+  summaryButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginTop: 8,
+  },
+  clearButton: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#B0BEC5',
+    alignItems: 'center',
+  },
+  clearSmall: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#B0BEC5',
+    alignItems: 'center',
+  },
+  checkoutButton: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#4CAF50',
+    alignItems: 'center',
+  },
+});
+
+
