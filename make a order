@@ -1,0 +1,88 @@
+import type { Order } from '@/components/CartContext';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
+
+const ORDERS_KEY = 'orders:list';
+
+export default function OrdersScreen() {
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(ORDERS_KEY);
+        setOrders(raw ? JSON.parse(raw) : []);
+      } catch {
+        setOrders([]);
+      }
+    };
+    const unsubscribe = () => {};
+    load();
+    return unsubscribe;
+  }, []);
+
+  return (
+    <FlatList
+      data={orders}
+      keyExtractor={(o) => o.id}
+      ListHeaderComponent={
+        <ThemedView style={styles.header}>
+          <IconSymbol size={40} name="list.bullet.rectangle.fill" color="#8B4513" />
+          <ThemedText type="title">Orders</ThemedText>
+        </ThemedView>
+      }
+      ListEmptyComponent={<ThemedText>No orders yet.</ThemedText>}
+      renderItem={({ item }) => (
+        <View style={styles.card}>
+          <View style={styles.rowBetween}>
+            <ThemedText type="defaultSemiBold">#{item.id}</ThemedText>
+            <ThemedText>{new Date(item.createdAt).toLocaleString()}</ThemedText>
+          </View>
+          <ThemedText>{item.name} • {item.method}</ThemedText>
+          <ThemedText>Items: {item.items.reduce((n, it) => n + it.quantity, 0)}</ThemedText>
+          <View style={styles.rowBetween}>
+            <ThemedText>Total</ThemedText>
+            <ThemedText type="defaultSemiBold">${item.paid.toFixed(2)}</ThemedText>
+          </View>
+        </View>
+      )}
+      contentContainerStyle={styles.listContent}
+      ItemSeparatorComponent={() => <View style={styles.sep} />}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    paddingTop: 48,
+    paddingBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  listContent: {
+    padding: 12,
+    paddingTop: 32,
+  },
+  card: {
+    borderRadius: 12,
+    backgroundColor: '#FFF7EF',
+    padding: 12,
+    gap: 6,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sep: {
+    height: 8,
+  },
+});
+
+
