@@ -1,0 +1,189 @@
+import { useCart } from '@/components/CartContext';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { router } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+
+const TIP_OPTIONS = [0, 10, 15, 20] as const;
+
+export default function CheckoutScreen() {
+  const { items, subtotal, discount, total, isFirstOrderEligible, checkout, createOrder } = useCart();
+
+  const [name, setName] = useState('');
+  const [method, setMethod] = useState<'Pickup' | 'Delivery'>('Pickup');
+  const [address, setAddress] = useState('');
+  const [tipPercent, setTipPercent] = useState<typeof TIP_OPTIONS[number]>(10);
+
+  const tipAmount = useMemo(() => +(total * (tipPercent / 100)).toFixed(2), [total, tipPercent]);
+  const payTotal = useMemo(() => +(total + tipAmount).toFixed(2), [total, tipAmount]);
+
+  const placeOrder = async () => {
+    try {
+      if (items.length === 0) {
+        Alert.alert('Your cart is empty');
+        return;
+      }
+      if (!name.trim()) {
+        Alert.alert('Please enter your name');
+        return;
+      }
+      if (method === 'Delivery' && !address.trim()) {
+        Alert.alert('Please enter delivery address');
+        return;
+      }
+
+      const applied = isFirstOrderEligible;
+      const discountAmount = discount.toFixed(2);
+      const totalAmount = total.toFixed(2);
+      const tip = tipAmount.toFixed(2);
+      const paid = payTotal.toFixed(2);
+
+      const order = await createOrder({
+        name,
+        method,
+        address: method === 'Delivery' ? address : undefined,
+        items,
+        subtotal,
+        discount,
+        total,
+        tipPercent,
+        tipAmount: +tip,
+        paid: +paid,
+        firstOrderApplied: applied,
+      });
+
+      await checkout();
+
+      router.replace({
+        pathname: '/order-confirmation',
+        params: {
+          applied: String(applied),
+          discount: discountAmount,
+          total: totalAmount,
+          tip,
+          paid,
+          name,
+          method,
+          orderId: order.id,
+        },
+      });
+    } catch (e: any) {
+      console.error('Checkout failed', e);
+      Alert.alert('Checkout failed', e?.message || 'Unexpected error');
+    }
+  };
+
+  return (
+    <ThemedView style={styles.container}>
+      <View style={styles.header}> 
+        <IconSymbol size={40} name="creditcard.fill" color="#8B4513" />
+        <ThemedText type="title">Checkout</ThemedText>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="subtitle">Your details</ThemedText>
+        <TextInput placeholder="Name" value={name} onChangeText={setName} style={styles.input} />
+        <View style={styles.methodRow}>
+          <Chip label="Pickup" active={method === 'Pickup'} onPress={() => setMethod('Pickup')} />
+          <Chip label="Delivery" active={method === 'Delivery'} onPress={() => setMethod('Delivery')} />
+        </View>
+        {method === 'Delivery' ? (
+          <TextInput placeholder="Address" value={address} onChangeText={setAddress} style={styles.input} />
+        ) : null}
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="subtitle">Tip</ThemedText>
+        <View style={styles.methodRow}>
+          {TIP_OPTIONS.map((p) => (
+            <Chip key={p} label={`${p}%`} active={tipPercent === p} onPress={() => setTipPercent(p)} />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="subtitle">Summary</ThemedText>
+        <Row label="Subtotal" value={`$${subtotal.toFixed(2)}`} />
+        <Row label={isFirstOrderEligible ? 'First order discount (10%)' : 'Discount'} value={`-$${discount.toFixed(2)}`} />
+        <Row label="Total" value={`$${total.toFixed(2)}`} />
+        <Row label={`Tip (${tipPercent}%)`} value={`$${tipAmount.toFixed(2)}`} />
+        <Row label="Amount to pay" value={`$${payTotal.toFixed(2)}`} bold />
+      </View>
+
+      <TouchableOpacity style={styles.placeOrder} onPress={placeOrder}>
+        <ThemedText type="defaultSemiBold">Place Order</ThemedText>
+      </TouchableOpacity>
+    </ThemedView>
+  );
+}
+
+function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <View style={styles.rowBetween}>
+      <ThemedText type={bold ? 'subtitle' : 'default'}>{label}</ThemedText>
+      <ThemedText type={bold ? 'subtitle' : 'default'}>{value}</ThemedText>
+    </View>
+  );
+}
+
+function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
+      <ThemedText type="defaultSemiBold">{label}</ThemedText>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  section: {
+    gap: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  methodRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#EAD7C0',
+  },
+  chipActive: {
+    backgroundColor: '#C08A53',
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  placeOrder: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#4CAF50',
+    alignItems: 'center',
+  },
+});
+
+
