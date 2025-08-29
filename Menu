@@ -1,0 +1,147 @@
+import { MENU, useCart } from '@/components/CartContext';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Image } from 'expo-image';
+import React, { useMemo, useState } from 'react';
+import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+const CATEGORIES = ['All', 'Coffee', 'Tea', 'Pastries'] as const;
+
+export default function MenuScreen() {
+  const { addItem } = useCart();
+  const [category, setCategory] = useState<typeof CATEGORIES[number]>('All');
+  const filtered = useMemo(() => (category === 'All' ? MENU : MENU.filter(m => m.category === category)), [category]);
+
+  return (
+    <FlatList
+      data={filtered}
+      keyExtractor={(item) => item.id}
+      numColumns={2}
+      columnWrapperStyle={styles.column}
+      ListHeaderComponent={
+        <>
+          <ThemedView style={styles.header}>
+            <IconSymbol size={40} name="cup.and.saucer.fill" color="#8B4513" />
+            <ThemedText type="title">Menu</ThemedText>
+          </ThemedView>
+          <View style={styles.filters}>
+            <View style={styles.filterChips}>
+              {CATEGORIES.map((c) => (
+                <TouchableOpacity key={c} onPress={() => setCategory(c)} style={[styles.chip, category === c && styles.chipActive]}>
+                  <ThemedText type="defaultSemiBold">{c}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity onPress={() => setCategory('All')} style={styles.resetBtn}>
+              <ThemedText type="defaultSemiBold">Reset</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </>
+      }
+      renderItem={({ item }) => (
+        <View style={styles.card}>
+          {item.image ? (
+            <Image source={{ uri: item.image }} style={styles.cardImage} contentFit="cover" />
+          ) : null}
+          <View style={styles.cardHeader}>
+            {item.icon ? <IconSymbol size={26} name={item.icon as any} color="#8B4513" /> : null}
+            <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
+          </View>
+          <View style={styles.cardFooter}>
+            <ThemedText>${item.price.toFixed(2)}</ThemedText>
+            <TouchableOpacity style={styles.addButton} onPress={() => addItem(item)}>
+              <ThemedText type="defaultSemiBold">Add</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      contentContainerStyle={styles.listContent}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    paddingTop: 48,
+    paddingBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  listContent: {
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingTop: 32,
+  },
+  column: {
+    gap: 12,
+  },
+  card: {
+    flex: 1,
+    borderRadius: 12,
+    backgroundColor: '#FFF7EF',
+    padding: 12,
+    gap: 12,
+  },
+  cardImage: {
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  filters: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 8,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    gap: 8,
+    flex: 1,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#EAD7C0',
+  },
+  chipActive: {
+    backgroundColor: '#C08A53',
+  },
+  resetBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#B0BEC5',
+  },
+  addButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#C08A53',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#e6e6e6',
+  },
+});
+
+
